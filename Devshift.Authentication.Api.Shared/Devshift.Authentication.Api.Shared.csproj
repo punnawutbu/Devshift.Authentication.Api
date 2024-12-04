@@ -1,8 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    
+    <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Devshift.DatetimeProvider" Version="1.0.0" />
+    <PackageReference Include="DevShift.defaultexception" Version="1.0.0" />
+    <PackageReference Include="Devshift.Jwt" Version="1.0.0" />
+    <PackageReference Include="Devshift.ResponseMessage" Version="1.0.0" />
+    <PackageReference Include="Devshift.Security.Encryption" Version="1.0.0" />
+    <PackageReference Include="Devshift.Token" Version="1.0.0" />
+    <PackageReference Include="Devshift.VaultService" Version="1.0.0" />
+  </ItemGroup>
 
 </Project>

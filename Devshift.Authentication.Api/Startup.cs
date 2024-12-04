@@ -3,17 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Devshift.Authentication.Api.Models;
+using Devshift.Authentication.Api.Shared.Facades;
+using Devshift.Authentication.Api.Shared.Services;
+using Devshift.DateTimeProvider;
+using Devshift.Security.Encryption;
+using Devshift.VaultService.Models;
+using DevShift.defaultexception;
+using Flurl.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using Devshift.Authentication.Api.Models;
-using NIO.DefaultException;
+using Newtonsoft.Json;
 using NLog;
 
-namespace Devshift.Authentication.Api {
+namespace Devshift.Authentication.Api
+{
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -38,6 +46,11 @@ namespace Devshift.Authentication.Api {
 
             // Adds health check service
             services.AddHealthChecks();
+            var appSettings = new AppSettings
+            {
+                VaultHost = Configuration.GetSection("VaultHost").Get<string>(),
+                VaultToken = Configuration.GetSection("ContentManager").Get<string>(),
+            };
 
             #region Swagger
             // Read Swagger settings
@@ -63,8 +76,46 @@ namespace Devshift.Authentication.Api {
             #endregion
 
             #region Dependency Injection
-            // For more information, visit https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection
+            var securityEncrpytion = new SecurityEncryption();
+
+
+            var vaultHost = securityEncrpytion.RSADecrypt(appSettings.VaultHost);
+            var vaultToken = securityEncrpytion.RSADecrypt(appSettings.VaultToken);
+
+
+            var vaultService = new VaultService.VaultService(new VaultConfig
+            {
+                Url = new FlurlClient(vaultHost),
+                Token = vaultToken
+            });
+
+            var credentialTxt = vaultService.GetCredential("secret/data/contentmanager").Result;
+            var ocelotSecretToken = vaultService.GetCredential("secret/data/shared/ocelot").Result;
+
+            var credential = JsonConvert.DeserializeObject<Credential>(credentialTxt);
+
+
+            var dateTimeProvide = new DateTimeProvider.DateTimeProvider(DateTime.Now);
+            services.AddTransient<IDateTimeProvider, DateTimeProvider.DateTimeProvider>(x => dateTimeProvide);
+
+            // var playerRepo = new PlayerRepository(credential.GoldTradeConnectionString,
+            //     credential.SslMode,
+            //     credential.Certificate
+            // );
+
+            var jwtService = new JwtService(ocelotSecretToken);
+            services.AddTransient<IJwtService, JwtService>(x => jwtService);
+
+            services.AddTransient<IAuthenFacade, AuthenFacade>();
+
+
+            services.AddTransient<IDefaultLoginFacade, DefaultLoginFacade>();
+
+            var securityEncryption = new SecurityEncryption();
+            services.AddSingleton<ISecurityEncryption, SecurityEncryption>(x => securityEncryption);
+
             #endregion
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -82,7 +133,7 @@ namespace Devshift.Authentication.Api {
                     c.PreSerializeFilters.Add((swagger, httpReq) =>
                     {
                         var forwardedHost = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault();
-                        
+
                         if (string.IsNullOrEmpty(forwardedHost))
                             swagger.Servers = new List<OpenApiServer>
                             {
@@ -95,7 +146,7 @@ namespace Devshift.Authentication.Api {
                             };
                     });
                 });
- 
+
                 // Use Swagger UI middleware
                 app.UseSwaggerUI(
                     c =>
@@ -104,8 +155,9 @@ namespace Devshift.Authentication.Api {
                     }
                 );
                 app.UseDefaultException(_logger, true);
-            }     
-            else {
+            }
+            else
+            {
                 app.UseDefaultException(_logger, false);
             }
 
