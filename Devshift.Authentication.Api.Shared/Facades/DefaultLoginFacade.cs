@@ -1,11 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Devshift.Authentication.Api.Shared.Models;
+using Devshift.Authentication.Api.Shared.Repositories;
 using Devshift.Authentication.Api.Shared.Services;
 using Devshift.DateTimeProvider;
 using Devshift.Jwt;
+using Devshift.Security.Encryption;
 
 namespace Devshift.Authentication.Api.Shared.Facades
 {
@@ -13,15 +14,21 @@ namespace Devshift.Authentication.Api.Shared.Facades
     {
         private readonly IJwtService _jwtService;
         private readonly IDateTimeProvider _endDateTime;
-        public DefaultLoginFacade(IJwtService jwtService)
+        private readonly IMemberRepository _memberRepository;
+        private readonly ISecurityEncryption _securityEncryption;
+        public DefaultLoginFacade(IJwtService jwtService, IMemberRepository memberRepository, ISecurityEncryption securityEncryption)
         {
             _jwtService = jwtService;
+            _memberRepository = memberRepository;
+            _securityEncryption = securityEncryption;
         }
         public async Task<LoginResponse> Login(LoginRequest user, string systemName, int version = 1, string role = "user")
         {
             var resp = new LoginResponse();
 
-            bool isPssswordCorrect = true;
+            string password = await _memberRepository.GetPassword(user.Username);
+
+            bool isPssswordCorrect = _securityEncryption.BCryptVerify(user.Password, password);
 
             if (!isPssswordCorrect)
             {
@@ -37,6 +44,7 @@ namespace Devshift.Authentication.Api.Shared.Facades
             resp.Token = token;
             resp.Profile = profile;
             resp.RefreshToken = refreshToken;
+
 
             // var isEnable = await _playerRepo.CheckIsEnable(user.Username);
 
@@ -59,7 +67,6 @@ namespace Devshift.Authentication.Api.Shared.Facades
                 resp.Token = _jwtService.GenerateToken(jwt.IdNumber, jwt.SystemName, jwt.Role, 86400);
                 resp.RefreshToken = _jwtService.GenerateToken(jwt.IdNumber, jwt.SystemName, jwt.Role, 7889231);
             }
-
 
             return resp;
         }

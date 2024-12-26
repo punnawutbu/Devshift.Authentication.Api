@@ -1,3 +1,5 @@
+using Devshift.Dapper.Models;
+
 namespace Devshift.Authentication.Api.Models
 {
     public class AppSettings
@@ -7,7 +9,9 @@ namespace Devshift.Authentication.Api.Models
     }
     public class Credential
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string MemberConnectionString {get; set;}
+        public Certificate Certificate { get; set; }
+        public bool SslMode { get; set; }
+        public string HashKey { get; set; }
     }
 }

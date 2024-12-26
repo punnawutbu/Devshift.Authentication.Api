@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Devshift.Authentication.Api.Models;
 using Devshift.Authentication.Api.Shared.Facades;
+using Devshift.Authentication.Api.Shared.Repositories;
 using Devshift.Authentication.Api.Shared.Services;
 using Devshift.DateTimeProvider;
 using Devshift.Security.Encryption;
@@ -49,7 +50,7 @@ namespace Devshift.Authentication.Api
             var appSettings = new AppSettings
             {
                 VaultHost = Configuration.GetSection("VaultHost").Get<string>(),
-                VaultToken = Configuration.GetSection("ContentManager").Get<string>(),
+                VaultToken = Configuration.GetSection("VaultToken").Get<string>(),
             };
 
             #region Swagger
@@ -89,30 +90,30 @@ namespace Devshift.Authentication.Api
                 Token = vaultToken
             });
 
-            var credentialTxt = vaultService.GetCredential("secret/data/contentmanager").Result;
+            var credentialTxt = vaultService.GetCredential("secret/data/member").Result;
             var ocelotSecretToken = vaultService.GetCredential("secret/data/shared/ocelot").Result;
 
             var credential = JsonConvert.DeserializeObject<Credential>(credentialTxt);
 
-
             var dateTimeProvide = new DateTimeProvider.DateTimeProvider(DateTime.Now);
             services.AddTransient<IDateTimeProvider, DateTimeProvider.DateTimeProvider>(x => dateTimeProvide);
 
-            // var playerRepo = new PlayerRepository(credential.GoldTradeConnectionString,
-            //     credential.SslMode,
-            //     credential.Certificate
-            // );
+            var nappRepository = new MemberRepository(credential.MemberConnectionString, credential.SslMode, credential.Certificate);
+            services.AddTransient<IMemberRepository, MemberRepository>(x => nappRepository);
 
             var jwtService = new JwtService(ocelotSecretToken);
             services.AddTransient<IJwtService, JwtService>(x => jwtService);
 
             services.AddTransient<IAuthenFacade, AuthenFacade>();
-
-
+            services.AddTransient<IUsersFacade, UsersFacade>();
             services.AddTransient<IDefaultLoginFacade, DefaultLoginFacade>();
 
-            var securityEncryption = new SecurityEncryption();
+            var securityEncryption = new SecurityEncryption(credential.HashKey);
             services.AddSingleton<ISecurityEncryption, SecurityEncryption>(x => securityEncryption);
+
+            var SecurityService = new SecurityService(securityEncryption);
+            services.AddSingleton<ISecurityService, SecurityService>(x => SecurityService);
+
 
             #endregion
 

@@ -13,15 +13,11 @@ namespace Devshift.Authentication.Api.Controllers
     {
         private readonly ILogger<LoginController> _logger;
         private readonly IAuthenFacade _facade;
-
-
         public LoginController(ILogger<LoginController> logger, IAuthenFacade facade)
         {
             _logger = logger;
             _facade = facade;
         }
-
-
         [HttpPost]
         public async Task<IActionResult> Login(LoginRequest user)
         {
