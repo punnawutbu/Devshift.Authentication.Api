@@ -90,18 +90,18 @@ namespace Devshift.Authentication.Api
                 Token = vaultToken
             });
 
-            var credentialTxt = vaultService.GetCredential("secret/data/member").Result;
-            var ocelotSecretToken = vaultService.GetCredential("secret/data/shared/ocelot").Result;
+            var credentialTxt = vaultService.GetCredential("secret/data/devops").Result;
+            // var ocelotSecretToken = vaultService.GetCredential("secret/data/shared/ocelot").Result;
 
             var credential = JsonConvert.DeserializeObject<Credential>(credentialTxt);
 
             var dateTimeProvide = new DateTimeProvider.DateTimeProvider(DateTime.Now);
             services.AddTransient<IDateTimeProvider, DateTimeProvider.DateTimeProvider>(x => dateTimeProvide);
 
-            var nappRepository = new MemberRepository(credential.MemberConnectionString, credential.SslMode, credential.Certificate);
-            services.AddTransient<IMemberRepository, MemberRepository>(x => nappRepository);
+            var memberRepository = new MemberRepository(credential.MemberConnectionString, credential.SslMode, credential.Certificate);
+            services.AddTransient<IMemberRepository, MemberRepository>(x => memberRepository);
 
-            var jwtService = new JwtService(ocelotSecretToken);
+            var jwtService = new JwtService("devshift_secret_key_1234567890");
             services.AddTransient<IJwtService, JwtService>(x => jwtService);
 
             services.AddTransient<IAuthenFacade, AuthenFacade>();
@@ -126,27 +126,27 @@ namespace Devshift.Authentication.Api
             if (env.IsDevelopment())
             {
                 var swaggerSettings = this.Configuration.GetSection("Swagger").Get<SwaggerSettings>();
-                var serviceName = this.Configuration.GetValue<string>("Consul:Discovery:ServiceName");
+                // var serviceName = this.Configuration.GetValue<string>("Consul:Discovery:ServiceName");
 
                 // Use Swagger middleware
-                app.UseSwagger(c =>
-                {
-                    c.PreSerializeFilters.Add((swagger, httpReq) =>
-                    {
-                        var forwardedHost = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault();
+                // app.UseSwagger(c =>
+                // {
+                //     c.PreSerializeFilters.Add((swagger, httpReq) =>
+                //     {
+                //         var forwardedHost = httpReq.Headers["X-Forwarded-Host"].FirstOrDefault();
 
-                        if (string.IsNullOrEmpty(forwardedHost))
-                            swagger.Servers = new List<OpenApiServer>
-                            {
-                                new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Host.Value}" }
-                            };
-                        else
-                            swagger.Servers = new List<OpenApiServer>
-                            {
-                                new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Headers["X-Forwarded-Host"].FirstOrDefault()}/{serviceName}/" }
-                            };
-                    });
-                });
+                //         if (string.IsNullOrEmpty(forwardedHost))
+                //             swagger.Servers = new List<OpenApiServer>
+                //             {
+                //                 new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Host.Value}" }
+                //             };
+                //         else
+                //             swagger.Servers = new List<OpenApiServer>
+                //             {
+                //                 new OpenApiServer { Url = $"{httpReq.Scheme}://{httpReq.Headers["X-Forwarded-Host"].FirstOrDefault()}/{serviceName}/" }
+                //             };
+                //     });
+                // });
 
                 // Use Swagger UI middleware
                 app.UseSwaggerUI(
