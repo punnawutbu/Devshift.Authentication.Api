@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 // using NLog.Web;
-using Steeltoe.Discovery.Client;
+// using Steeltoe.Discovery.Client;
 
 namespace Devshift.Authentication.Api
 {
@@ -26,8 +26,8 @@ namespace Devshift.Authentication.Api
                         .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", false, false)
                         .AddJsonFile("secrets.json", true, false)
                         .AddEnvironmentVariables();
-                })
-                .AddDiscoveryClient();
+                });
+                // .AddDiscoveryClient();
                 // .UseNLog();
     }
 }

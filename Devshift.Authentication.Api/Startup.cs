@@ -10,7 +10,7 @@ using Devshift.Authentication.Api.Shared.Services;
 using Devshift.DateTimeProvider;
 using Devshift.Security.Encryption;
 using Devshift.VaultService.Models;
-using DevShift.defaultexception;
+using Devshift.DefaultException;
 using Flurl.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -20,6 +20,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using NLog;
+using Devshift.Authentication.Api.Shared.Models;
 
 namespace Devshift.Authentication.Api
 {
@@ -79,7 +80,6 @@ namespace Devshift.Authentication.Api
             #region Dependency Injection
             var securityEncrpytion = new SecurityEncryption();
 
-
             var vaultHost = securityEncrpytion.RSADecrypt(appSettings.VaultHost);
             var vaultToken = securityEncrpytion.RSADecrypt(appSettings.VaultToken);
 
@@ -90,7 +90,7 @@ namespace Devshift.Authentication.Api
                 Token = vaultToken
             });
 
-            var credentialTxt = vaultService.GetCredential("secret/data/devops").Result;
+            var credentialTxt = vaultService.GetCredential("secret/data/auth").Result;
             // var ocelotSecretToken = vaultService.GetCredential("secret/data/shared/ocelot").Result;
 
             var credential = JsonConvert.DeserializeObject<Credential>(credentialTxt);
@@ -98,17 +98,21 @@ namespace Devshift.Authentication.Api
             var dateTimeProvide = new DateTimeProvider.DateTimeProvider(DateTime.Now);
             services.AddTransient<IDateTimeProvider, DateTimeProvider.DateTimeProvider>(x => dateTimeProvide);
 
-            var memberRepository = new MemberRepository(credential.MemberConnectionString, credential.SslMode, credential.Certificate);
+            var memberRepository = new MemberRepository(credential.ConnectionString, credential.SslMode, credential.Certificate);
             services.AddTransient<IMemberRepository, MemberRepository>(x => memberRepository);
 
             var jwtService = new JwtService("devshift_secret_key_1234567890");
             services.AddTransient<IJwtService, JwtService>(x => jwtService);
 
             services.AddTransient<IAuthenFacade, AuthenFacade>();
-            services.AddTransient<IUsersFacade, UsersFacade>();
+            services.AddTransient<IMemberFacade, MemberFacade>();
             services.AddTransient<IDefaultLoginFacade, DefaultLoginFacade>();
+            services.AddSingleton(new JwtOptions
+            {
+                SecretKey = credential.SecretKey
+            });
 
-            var securityEncryption = new SecurityEncryption(credential.HashKey);
+            var securityEncryption = new SecurityEncryption(credential.SecretKey);
             services.AddSingleton<ISecurityEncryption, SecurityEncryption>(x => securityEncryption);
 
             var SecurityService = new SecurityService(securityEncryption);

@@ -1,17 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Devshift.DatetimeProvider" Version="1.0.0" />
-    <PackageReference Include="DevShift.defaultexception" Version="1.0.0" />
-    <PackageReference Include="Devshift.Jwt" Version="1.0.0" />
+    <PackageReference Include="Devshift.DatetimeProvider" Version="1.0.1" />
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Npgsql" Version="10.0.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
+    <PackageReference Include="Devshift.Dapper" Version="1.0.2" />
+    <PackageReference Include="Devshift.Defaultexception" Version="1.0.2" />
+    <PackageReference Include="Devshift.VaultService" Version="1.0.2" />
+    <PackageReference Include="Devshift.Security.Encryption" Version="1.1.0" />
     <PackageReference Include="Devshift.ResponseMessage" Version="1.0.0" />
-    <PackageReference Include="Devshift.Security.Encryption" Version="1.0.0" />
-    <PackageReference Include="Devshift.Token" Version="1.0.0" />
-    <PackageReference Include="Devshift.VaultService" Version="1.0.0" />
+    <PackageReference Include="Devshift.Jwt" Version="1.0.0" />
   </ItemGroup>
 
 </Project>

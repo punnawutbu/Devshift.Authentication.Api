@@ -34,7 +34,6 @@ namespace Devshift.Authentication.Api.Shared.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-
         public string GenerateToken(string systemName, Claim[] claims, int lifeTime, string iss = "devshift")
         {
             switch (systemName.ToLower())

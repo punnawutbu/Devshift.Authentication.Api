@@ -7,12 +7,11 @@ namespace Devshift.Authentication.Api.Shared.Models
     }
 
 
-    public class LoginResponse
+    public class Login
     {
         public Profiles Profile { get; set; }
         public string Token { get; set; }
         public string RefreshToken { get; set; }
-        public string Message { get; set; }
     }
     public class CheckPasswordRequest
     {

@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Devshift.Authentication.Api/bin/Debug/net9.0/Devshift.Authentication.Api.dll",
+            "program": "${workspaceFolder}/Devshift.Authentication.Api/bin/Debug/net8.0/Devshift.Authentication.Api.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Devshift.Authentication.Api",
             "stopAtEntry": false,

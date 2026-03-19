@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Devshift.Authentication.Api.Shared.Models;
 using Devshift.Authentication.Api.Shared.Repositories;
@@ -7,56 +6,76 @@ using Devshift.Authentication.Api.Shared.Services;
 using Devshift.DateTimeProvider;
 using Devshift.Jwt;
 using Devshift.Security.Encryption;
+using Devshift.Authentication.Api.Shared.Utils;
+using Devshift.ResponseMessage;
 
 namespace Devshift.Authentication.Api.Shared.Facades
 {
     public class DefaultLoginFacade : IDefaultLoginFacade
     {
         private readonly IJwtService _jwtService;
-        private readonly IDateTimeProvider _endDateTime;
+        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IMemberRepository _memberRepository;
         private readonly ISecurityEncryption _securityEncryption;
-        public DefaultLoginFacade(IJwtService jwtService, IMemberRepository memberRepository, ISecurityEncryption securityEncryption)
+        private readonly JwtOptions _jwtOptions;
+        public DefaultLoginFacade(
+    IJwtService jwtService,
+    IMemberRepository memberRepository,
+    ISecurityEncryption securityEncryption,
+    IDateTimeProvider dateTimeProvider,
+    JwtOptions jwtOptions)
         {
             _jwtService = jwtService;
             _memberRepository = memberRepository;
             _securityEncryption = securityEncryption;
+            _dateTimeProvider = dateTimeProvider;
+            _jwtOptions = jwtOptions;
         }
-        public async Task<LoginResponse> Login(LoginRequest user, string systemName, int version = 1, string role = "user")
+        public async Task<ResponseMessage<Login>> Login(LoginRequest user, string systemName, int version = 1, string role = "user")
         {
-            var resp = new LoginResponse();
-
-            string password = await _memberRepository.GetPassword(user.Username);
-
-            bool isPssswordCorrect = _securityEncryption.BCryptVerify(user.Password, password);
-
-            if (!isPssswordCorrect)
+            var resp = new ResponseMessage<Login>
             {
-                resp.Message = LoginMessage.UserOrPasswordIncorrect;
+                Result = new Login(),
+                Message = Constants.Message.UserOrPasswordIncorrect
+            };
+            try
+            {
+                string password = await _memberRepository.GetPassword(user.Username);
+
+                bool isPssswordCorrect = _securityEncryption.BCryptVerify(user.Password, password);
+
+                if (!isPssswordCorrect)
+                {
+                    return resp;
+                }
+
+                var userId = await _memberRepository.GetUserIdByUserName(user.Username);
+
+                var userProfile = await _GetUserTokenProfile(userId);
+
+                var claims = TokenUtils.GenerateClaims(userProfile, systemName, role);
+
+                var token = JwtUtil.GenerateJwt(_jwtOptions.SecretKey, claims, 86400, systemName);
+                var refreshToken = JwtUtil.GenerateJwt(_jwtOptions.SecretKey, claims, 7889231, systemName);
+
+                resp.Result.Token = token;
+                resp.Result.RefreshToken = refreshToken;
+
+                resp.Message = Constants.Message.LoginSuccess;
                 return resp;
             }
-
-            var profile = new Profiles();
-
-            var token = _jwtService.GenerateToken(user.Username, systemName, role, 86400);
-            var refreshToken = _jwtService.GenerateToken(user.Username, systemName, role, 7889231);
-
-            resp.Token = token;
-            resp.Profile = profile;
-            resp.RefreshToken = refreshToken;
-
-
-            // var isEnable = await _playerRepo.CheckIsEnable(user.Username);
-
-            resp.Message = LoginMessage.LoginSuccess;
-            return resp;
+            catch (Exception ex)
+            {
+                resp.Message = ex.Message;
+                return resp;
+            }
         }
         public RefreshTokenResponse RefreshToken(string token)
         {
             var resp = new RefreshTokenResponse();
 
 
-            var now = _endDateTime.Now();
+            var now = _dateTimeProvider.Now();
 
             var jwt = JwtUtil.ExtractJwt(token);
 
@@ -73,22 +92,16 @@ namespace Devshift.Authentication.Api.Shared.Facades
 
 
         #region Private
-        private string _SubstringRole(string role)
-        {
-            var str = role.Split("\\");
-            return str.Last();
-        }
-        private decimal _GetCredit(decimal marginFree, string userRole, int version)
-        {
-            if (version == 2 && userRole == "HAT")
-            {
-                return decimal.Round(marginFree, 4);
-            }
-            return decimal.Round(marginFree * 16.6667m, 4);
-        }
         private DateTime _ConvertUnixToDateTime(long unixTime)
         {
             return new DateTime(1970, 1, 1).AddSeconds(unixTime);
+        }
+
+        private async Task<UserTokenProfile> _GetUserTokenProfile(Guid userId)
+        {
+            var user = await _memberRepository.GetUserById(userId);
+
+            return user;
         }
         #endregion
     }
